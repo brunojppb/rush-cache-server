@@ -8,30 +8,44 @@ rust-version = "1.94"
 
 [dependencies]
 actix-web = "4"
-tokio = { version = "1", features = ["full"] }
-rust-s3 = { version = "0.37", default-features = false, features = ["tokio-rustls-tls"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio-util = { version = "0.7", features = ["io"] }
+rust-s3 = "0.37"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
 tracing-appender = "0.2"
+tracing-log = "0.2"
+tracing-bunyan-formatter = "0.3"
 tracing-actix-web = "0.7"
-opentelemetry = { version = "0.29", features = ["metrics"] }
-opentelemetry_sdk = { version = "0.29", features = ["rt-tokio", "metrics"] }
-opentelemetry-otlp = { version = "0.29", features = ["grpc-tonic", "metrics"] }
-tracing-opentelemetry = "0.30"
-tonic = "0.12"
-sysinfo = "0.33"
+tracing-opentelemetry = "0.32"
+opentelemetry = "0.31"
+opentelemetry_sdk = { version = "0.31", features = [
+  "rt-tokio",
+  "experimental_trace_batch_span_processor_with_async_runtime",
+  "experimental_metrics_periodicreader_with_async_runtime",
+] }
+opentelemetry-otlp = { version = "0.31", features = [
+  "grpc-tonic",
+  "http-json",
+] }
+opentelemetry-semantic-conventions = { version = "0.31", features = [
+  "semconv_experimental",
+] }
+tonic = "0.14.2"
+sysinfo = "0.38"
 futures = "0.3"
 bytes = "1"
 http = "1"
 dotenv = "0.15"
+openssl = { version = "0.10", features = ["vendored"] }
 
 [dev-dependencies]
 pretty_assertions = "1"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 wiremock = "0.6"
-tokio = { version = "1", features = ["full", "test-util"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "test-util"] }
 
 [profile.release]
 strip = true

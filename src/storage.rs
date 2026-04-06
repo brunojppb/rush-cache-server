@@ -86,7 +86,13 @@ impl Storage {
                     Err(map_s3_status(resp.status_code()))
                 }
             }
-            Err(e) => Err(map_s3_error(e)),
+            Err(e) => {
+                let storage_err = map_s3_error(e);
+                match storage_err {
+                    StorageError::NotFound => Ok(None),
+                    other => Err(other),
+                }
+            }
         }
     }
 
@@ -119,9 +125,9 @@ fn map_s3_status(status: u16) -> StorageError {
 
 fn map_s3_error(err: s3::error::S3Error) -> StorageError {
     let msg = err.to_string();
-    if msg.contains("NoSuchKey") {
+    if msg.contains("NoSuchKey") || msg.contains("404") || msg.contains("Not Found") {
         StorageError::NotFound
-    } else if msg.contains("AccessDenied") || msg.contains("Forbidden") {
+    } else if msg.contains("AccessDenied") || msg.contains("Forbidden") || msg.contains("403") {
         StorageError::AccessDenied
     } else if msg.contains("timeout") || msg.contains("Timeout") || msg.contains("connection") {
         StorageError::Unavailable(msg)

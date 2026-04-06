@@ -7,7 +7,9 @@ use wiremock::MockServer;
 
 pub static TRACING: LazyLock<()> = LazyLock::new(|| {
     if std::env::var("TEST_LOG").is_ok() {
-        rush_cache_server::telemetry::init_telemetry("debug", None);
+        let subscriber =
+            rush_cache_server::telemetry::get_telemetry_subscriber("debug".into(), std::io::stdout);
+        rush_cache_server::telemetry::init_telemetry_subscriber(subscriber);
     }
 });
 
