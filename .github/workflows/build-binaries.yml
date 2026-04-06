@@ -27,8 +27,10 @@ jobs:
 
       - name: Update version in Cargo.toml
         if: inputs.version != 'latest'
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          sed -i "s/^version = \".*\"/version = \"${{ inputs.version }}\"/" Cargo.toml
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
 
       - name: Build Linux binaries (AMD64 + ARM64)
         uses: docker/build-push-action@v7

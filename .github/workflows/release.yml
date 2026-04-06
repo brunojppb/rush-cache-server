@@ -40,6 +40,8 @@ jobs:
     name: Release
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -47,7 +49,7 @@ jobs:
 
       - name: Update version in Cargo.toml
         run: |
-          sed -i "s/^version = \".*\"/version = \"${{ inputs.version }}\"/" Cargo.toml
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
 
       - name: Download binaries into action directory
         uses: actions/download-artifact@v8
@@ -78,6 +80,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker images
+        env:
+          DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+          REPO: ${{ github.repository }}
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -98,11 +103,11 @@ jobs:
           git add Cargo.toml
           git add action/rush-cache-server-x64
           git add action/rush-cache-server-arm64
-          git commit -m "Release v${{ inputs.version }}"
+          git commit -m "Release v${VERSION}"
 
       - name: Create and push tag
         run: |
-          git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
           git push origin main --follow-tags
 
       - name: Generate changelog
@@ -112,13 +117,16 @@ jobs:
           if [ -z "$PREV_TAG" ]; then
             CHANGELOG=$(git log --oneline)
           else
-            CHANGELOG=$(git log --oneline "${PREV_TAG}..v${{ inputs.version }}")
+            CHANGELOG=$(git log --oneline "${PREV_TAG}..v${VERSION}")
           fi
           echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
           echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
+        env:
+          DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+          REPO: ${{ github.repository }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ inputs.version }}"
