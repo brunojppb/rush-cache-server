@@ -1,0 +1,7 @@
+name: "Rush Cache Server"
+description: "Rush build cache server background process as Action"
+
+runs:
+  using: "node24"
+  main: "action/main.mjs"
+  post: "action/post.mjs"

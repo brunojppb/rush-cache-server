@@ -57,6 +57,51 @@ export CACHE_TOKENS_READ_WRITE=tok_rw_ci
 ./rush-cache-server
 ```
 
+### GitHub Action
+
+Run the cache server as a background process in your CI workflow. The action starts the server, waits for it to become healthy, and automatically shuts it down in a post step.
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start Rush Cache Server
+        uses: brunojppb/rush-cache-server@v1
+        env:
+          S3_BUCKET: ${{ vars.CACHE_S3_BUCKET }}
+          S3_REGION: us-east-1
+          S3_ACCESS_KEY: ${{ secrets.CACHE_S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.CACHE_S3_SECRET_KEY }}
+          CACHE_TOKENS_READ_ONLY: ${{ secrets.CACHE_TOKEN_RO }}
+          CACHE_TOKENS_READ_WRITE: ${{ secrets.CACHE_TOKEN_RW }}
+          OTEL_SDK_DISABLED: "true"
+          HOST: "127.0.0.1"
+          PORT: "8080"
+
+      - name: Rush build
+        env:
+          RUSH_BUILD_CACHE_CREDENTIAL: "Bearer ${{ secrets.CACHE_TOKEN_RW }}"
+          RUSH_BUILD_CACHE_WRITE_ALLOWED: "1"
+          RUSH_BUILD_CACHE_OVERRIDE_JSON: >-
+            {
+              "buildCacheEnabled": true,
+              "cacheProvider": "http",
+              "httpConfiguration": {
+                "url": "http://127.0.0.1:8080/artifacts",
+                "uploadMethod": "PUT",
+                "isCacheWriteAllowed": true
+              }
+            }
+        run: rush rebuild --verbose
+```
+
+Since the server runs on `localhost` inside the CI runner, Rush needs to know about it. The `url` in `build-cache.json` is a static value checked into your repo (typically pointing to a deployed instance), so CI uses `RUSH_BUILD_CACHE_OVERRIDE_JSON` to replace the entire config at runtime and point Rush at the local server instead.
+
+The server binaries (Linux x64 and arm64) are committed to the `action/` directory on each tagged release, so the action works without downloading anything at runtime.
+
 ## Rush Client Configuration
 
 In your `build-cache.json`:
@@ -68,8 +113,8 @@ In your `build-cache.json`:
   "httpConfiguration": {
     "url": "https://your-cache-server.internal/artifacts",
     "uploadMethod": "PUT",
-    "isCacheWriteAllowed": false,
-  },
+    "isCacheWriteAllowed": false
+  }
 }
 ```
 
@@ -83,6 +128,28 @@ export RUSH_BUILD_CACHE_CREDENTIAL="Bearer tok_ro_dev1"
 export RUSH_BUILD_CACHE_CREDENTIAL="Bearer tok_rw_ci"
 export RUSH_BUILD_CACHE_WRITE_ALLOWED=1
 ```
+
+### Pointing Rush to a local server
+
+The `url` in `build-cache.json` is checked into your repo and typically points to a deployed cache server. To test against a locally running instance, use `RUSH_BUILD_CACHE_OVERRIDE_JSON` to replace the config at runtime without editing any committed files:
+
+```bash
+export RUSH_BUILD_CACHE_CREDENTIAL="Bearer tok_readwrite_1"
+export RUSH_BUILD_CACHE_WRITE_ALLOWED=1
+export RUSH_BUILD_CACHE_OVERRIDE_JSON='{
+  "buildCacheEnabled": true,
+  "cacheProvider": "http",
+  "httpConfiguration": {
+    "url": "http://localhost:8080/artifacts",
+    "uploadMethod": "PUT",
+    "isCacheWriteAllowed": true
+  }
+}'
+
+rush rebuild --verbose
+```
+
+Alternatively, you can point to a JSON file with `RUSH_BUILD_CACHE_OVERRIDE_JSON_FILE_PATH` instead of inlining the JSON. These two variables are mutually exclusive.
 
 ## Configuration
 
