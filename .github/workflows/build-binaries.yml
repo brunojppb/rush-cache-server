@@ -1,0 +1,64 @@
+name: Build Binaries
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: false
+        type: string
+        default: "latest"
+      cache-ref:
+        required: false
+        type: string
+        default: "cache"
+    secrets:
+      DOCKER_TOKEN:
+        required: false
+
+jobs:
+  linux:
+    name: Build Linux Binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Update version in Cargo.toml
+        if: inputs.version != 'latest'
+        run: |
+          sed -i "s/^version = \".*\"/version = \"${{ inputs.version }}\"/" Cargo.toml
+
+      - name: Build AMD64
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: builder
+          load: true
+          tags: rush-cache-builder:amd64
+          build-args: TARGETARCH=x64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract AMD64 binary
+        run: |
+          container_id=$(docker create rush-cache-builder:amd64)
+          docker cp "$container_id:/rush-cache-server-x64" ./rush-cache-server-x64
+          docker rm "$container_id"
+          chmod +x ./rush-cache-server-x64
+
+      - name: Extract ARM64 binary
+        run: |
+          container_id=$(docker create rush-cache-builder:amd64)
+          docker cp "$container_id:/rush-cache-server-arm64" ./rush-cache-server-arm64
+          docker rm "$container_id"
+          chmod +x ./rush-cache-server-arm64
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries
+          path: |
+            rush-cache-server-x64
+            rush-cache-server-arm64

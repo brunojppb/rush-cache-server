@@ -1,1 +1,15 @@
 /target
+.env
+*.log
+
+# IDEs
+.vscode
+.idea
+
+# System
+.DS_Store
+
+# Local data
+s3_data
+s3_logs
+db
