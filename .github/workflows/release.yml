@@ -81,7 +81,7 @@ jobs:
 
       - name: Build and push Docker images
         env:
-          DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           REPO: ${{ github.repository }}
         uses: docker/build-push-action@v7
         with:
@@ -89,8 +89,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ vars.DOCKER_USERNAME }}/rush-cache-server:${{ inputs.version }}
-            ${{ vars.DOCKER_USERNAME }}/rush-cache-server:latest
+            ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:${{ inputs.version }}
+            ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:latest
             ghcr.io/${{ github.repository }}:${{ inputs.version }}
             ghcr.io/${{ github.repository }}:latest
           cache-from: type=gha
@@ -125,7 +125,7 @@ jobs:
 
       - name: Create GitHub Release
         env:
-          DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           REPO: ${{ github.repository }}
         uses: softprops/action-gh-release@v2
         with:
@@ -142,7 +142,7 @@ jobs:
             | Linux ARM64 | `rush-cache-server-arm64` |
 
             ## Docker Images
-            - `docker pull ${{ vars.DOCKER_USERNAME }}/rush-cache-server:${{ inputs.version }}`
+            - `docker pull ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:${{ inputs.version }}`
             - `docker pull ghcr.io/${{ github.repository }}:${{ inputs.version }}`
           files: |
             action/rush-cache-server-x64
