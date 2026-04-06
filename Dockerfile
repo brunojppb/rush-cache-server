@@ -4,9 +4,9 @@ RUN apk add --no-cache ca-certificates
 
 ## Stage 2: Install build tooling
 FROM rust:1.94-alpine AS chef
-RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconf git perl linux-headers
-RUN cargo install cargo-chef cargo-zigbuild
-RUN rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
+RUN apk add --no-cache musl-dev openssl-dev zig perl make && \
+  cargo install --locked cargo-zigbuild cargo-chef && \
+  rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
 
 ## Stage 3: Plan dependencies
 FROM chef AS planner
