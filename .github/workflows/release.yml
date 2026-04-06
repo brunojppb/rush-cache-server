@@ -127,6 +127,12 @@ jobs:
             ## Changes
             ${{ steps.changelog.outputs.changelog }}
 
+            ## Downloads
+            | Platform | Binary |
+            |----------|--------|
+            | Linux x86_64 | `rush-cache-server-x64` |
+            | Linux ARM64 | `rush-cache-server-arm64` |
+
             ## Docker Images
             - `docker pull ${{ vars.DOCKER_USERNAME }}/rush-cache-server:${{ inputs.version }}`
             - `docker pull ghcr.io/${{ github.repository }}:${{ inputs.version }}`
