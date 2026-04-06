@@ -56,7 +56,6 @@ pub async fn spawn_app_with_config(config: TestAppConfig) -> TestApp {
         s3_access_key: Some("test-access-key".to_string()),
         s3_secret_key: Some("test-secret-key".to_string()),
         s3_use_path_style: true,
-        max_body_size: 524_288_000,
         log_level: "info".to_string(),
         logs_directory: None,
         token_store: TokenStore::new(

@@ -174,7 +174,6 @@ Alternatively, you can point to a JSON file with `RUSH_BUILD_CACHE_OVERRIDE_JSON
 | `S3_SECRET_KEY`     | _(AWS chain)_   | Explicit S3 secret key                           |
 | `S3_USE_PATH_STYLE` | `false`         | Use path-style URLs (required by MinIO)          |
 | `LOG_LEVEL`         | `info`          | Log verbosity (`debug`, `info`, `warn`, `error`) |
-| `MAX_BODY_SIZE`     | `524288000`     | Max upload size in bytes (default 500 MB)        |
 | `LOGS_DIRECTORY`    | _(none)_        | Directory for file-based log output              |
 
 ### S3 Authentication

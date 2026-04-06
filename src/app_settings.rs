@@ -47,7 +47,6 @@ pub struct AppSettings {
     pub s3_access_key: Option<String>,
     pub s3_secret_key: Option<String>,
     pub s3_use_path_style: bool,
-    pub max_body_size: usize,
     pub log_level: String,
     pub logs_directory: Option<String>,
     pub token_store: TokenStore,
@@ -83,10 +82,6 @@ impl AppSettings {
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()
                 .unwrap_or(false),
-            max_body_size: env::var("MAX_BODY_SIZE")
-                .unwrap_or_else(|_| "524288000".to_string())
-                .parse()
-                .expect("MAX_BODY_SIZE must be a valid usize"),
             log_level: env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
             logs_directory: env::var("LOGS_DIRECTORY").ok(),
             token_store,

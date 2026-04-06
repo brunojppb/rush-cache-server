@@ -15,7 +15,6 @@ pub fn run(listener: TcpListener, settings: AppSettings) -> Result<Server, std::
     let storage = Storage::new(&settings);
     let storage = web::Data::new(storage);
     let settings = web::Data::new(settings.clone());
-    let max_body_size = settings.max_body_size;
 
     let server = HttpServer::new(move || {
         App::new()
@@ -31,7 +30,6 @@ pub fn run(listener: TcpListener, settings: AppSettings) -> Result<Server, std::
             )
             .app_data(storage.clone())
             .app_data(settings.clone())
-            .app_data(web::PayloadConfig::new(max_body_size))
     })
     .listen(listener)?
     .run();
