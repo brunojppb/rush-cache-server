@@ -138,8 +138,8 @@ jobs:
             ## Downloads
             | Platform | Binary |
             |----------|--------|
-            | Linux x86_64 | `rush-cache-server-x64` |
-            | Linux ARM64 | `rush-cache-server-arm64` |
+            | Linux x86_64 | [`rush-cache-server-x64`](https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/rush-cache-server-x64) |
+            | Linux ARM64 | [`rush-cache-server-arm64`](https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/rush-cache-server-arm64) |
 
             ## Docker Images
             - `docker pull ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:${{ inputs.version }}`
