@@ -41,19 +41,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Extract AMD64 binary
+      - name: Extract binaries
         run: |
           container_id=$(docker create rush-cache-builder:amd64)
           docker cp "$container_id:/rush-cache-server-x64" ./rush-cache-server-x64
-          docker rm "$container_id"
-          chmod +x ./rush-cache-server-x64
-
-      - name: Extract ARM64 binary
-        run: |
-          container_id=$(docker create rush-cache-builder:amd64)
           docker cp "$container_id:/rush-cache-server-arm64" ./rush-cache-server-arm64
           docker rm "$container_id"
-          chmod +x ./rush-cache-server-arm64
+          chmod +x ./rush-cache-server-x64 ./rush-cache-server-arm64
 
       - name: Upload binaries
         uses: actions/upload-artifact@v4
