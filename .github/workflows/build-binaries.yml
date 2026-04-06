@@ -30,7 +30,7 @@ jobs:
         run: |
           sed -i "s/^version = \".*\"/version = \"${{ inputs.version }}\"/" Cargo.toml
 
-      - name: Build AMD64
+      - name: Build Linux binaries (AMD64 + ARM64)
         uses: docker/build-push-action@v6
         with:
           context: .
