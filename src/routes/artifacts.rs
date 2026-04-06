@@ -43,11 +43,11 @@ pub async fn put_artifact(
 ) -> HttpResponse {
     // Check write permission
     let auth = req.extensions().get::<AuthenticatedToken>().cloned();
-    if let Some(ref auth) = auth {
-        if auth.permission == TokenPermission::ReadOnly {
-            return HttpResponse::Forbidden()
-                .json(serde_json::json!({"error": "Token does not have write permission"}));
-        }
+    if let Some(ref auth) = auth
+        && auth.permission == TokenPermission::ReadOnly
+    {
+        return HttpResponse::Forbidden()
+            .json(serde_json::json!({"error": "Token does not have write permission"}));
     }
 
     let cache_id = &path.cache_id;

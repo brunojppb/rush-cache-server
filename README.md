@@ -68,8 +68,8 @@ In your `build-cache.json`:
   "httpConfiguration": {
     "url": "https://your-cache-server.internal/artifacts",
     "uploadMethod": "PUT",
-    "isCacheWriteAllowed": false
-  }
+    "isCacheWriteAllowed": false,
+  },
 }
 ```
 
@@ -88,27 +88,27 @@ export RUSH_BUILD_CACHE_WRITE_ALLOWED=1
 
 ### Required
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `S3_BUCKET` | S3 bucket name | `my-rush-cache` |
-| `S3_REGION` | AWS region | `us-east-1` |
-| `CACHE_TOKENS_READ_ONLY` | Comma-separated read-only tokens | `tok_ro_1,tok_ro_2` |
-| `CACHE_TOKENS_READ_WRITE` | Comma-separated read-write tokens | `tok_rw_1` |
+| Variable                  | Description                       | Example             |
+| ------------------------- | --------------------------------- | ------------------- |
+| `S3_BUCKET`               | S3 bucket name                    | `my-rush-cache`     |
+| `S3_REGION`               | AWS region                        | `us-east-1`         |
+| `CACHE_TOKENS_READ_ONLY`  | Comma-separated read-only tokens  | `tok_ro_1,tok_ro_2` |
+| `CACHE_TOKENS_READ_WRITE` | Comma-separated read-write tokens | `tok_rw_1`          |
 
 ### Optional
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8080` | HTTP listen port |
-| `HOST` | `0.0.0.0` | Bind address |
-| `S3_PREFIX` | `rush-cache` | Object key prefix in the bucket |
-| `S3_ENDPOINT` | _(AWS default)_ | Custom S3 endpoint for MinIO, R2, etc. |
-| `S3_ACCESS_KEY` | _(AWS chain)_ | Explicit S3 access key |
-| `S3_SECRET_KEY` | _(AWS chain)_ | Explicit S3 secret key |
-| `S3_USE_PATH_STYLE` | `false` | Use path-style URLs (required by MinIO) |
-| `LOG_LEVEL` | `info` | Log verbosity (`debug`, `info`, `warn`, `error`) |
-| `MAX_BODY_SIZE` | `524288000` | Max upload size in bytes (default 500 MB) |
-| `LOGS_DIRECTORY` | _(none)_ | Directory for file-based log output |
+| Variable            | Default         | Description                                      |
+| ------------------- | --------------- | ------------------------------------------------ |
+| `PORT`              | `8080`          | HTTP listen port                                 |
+| `HOST`              | `0.0.0.0`       | Bind address                                     |
+| `S3_PREFIX`         | `rush-cache`    | Object key prefix in the bucket                  |
+| `S3_ENDPOINT`       | _(AWS default)_ | Custom S3 endpoint for MinIO, R2, etc.           |
+| `S3_ACCESS_KEY`     | _(AWS chain)_   | Explicit S3 access key                           |
+| `S3_SECRET_KEY`     | _(AWS chain)_   | Explicit S3 secret key                           |
+| `S3_USE_PATH_STYLE` | `false`         | Use path-style URLs (required by MinIO)          |
+| `LOG_LEVEL`         | `info`          | Log verbosity (`debug`, `info`, `warn`, `error`) |
+| `MAX_BODY_SIZE`     | `524288000`     | Max upload size in bytes (default 500 MB)        |
+| `LOGS_DIRECTORY`    | _(none)_        | Directory for file-based log output              |
 
 ### S3 Authentication
 
@@ -144,10 +144,10 @@ Health check. No authentication required. Returns `{"status": "healthy"}`.
 
 The server ships with full OTLP support for traces and metrics, compatible with Datadog, Honeycomb, New Relic, Jaeger, Prometheus, and any OTLP-capable backend.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OTEL_SDK_DISABLED` | `false` | Set to `true` to disable OTel entirely |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTLP gRPC endpoint |
+| Variable                      | Default                 | Description                            |
+| ----------------------------- | ----------------------- | -------------------------------------- |
+| `OTEL_SDK_DISABLED`           | `false`                 | Set to `true` to disable OTel entirely |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTLP gRPC endpoint                     |
 
 System metrics (CPU and memory) are automatically registered as OpenTelemetry gauges when OTel is enabled.
 
