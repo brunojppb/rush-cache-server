@@ -36,16 +36,15 @@ jobs:
           context: .
           target: builder
           load: true
-          tags: rush-cache-builder:amd64
-          build-args: TARGETARCH=x64
+          tags: rush-cache-builder:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Extract binaries
         run: |
-          container_id=$(docker create rush-cache-builder:amd64)
-          docker cp "$container_id:/rush-cache-server-x64" ./rush-cache-server-x64
-          docker cp "$container_id:/rush-cache-server-arm64" ./rush-cache-server-arm64
+          container_id=$(docker create rush-cache-builder:latest)
+          docker cp "$container_id:/app/linux/amd64" ./rush-cache-server-x64
+          docker cp "$container_id:/app/linux/arm64" ./rush-cache-server-arm64
           docker rm "$container_id"
           chmod +x ./rush-cache-server-x64 ./rush-cache-server-arm64
 
