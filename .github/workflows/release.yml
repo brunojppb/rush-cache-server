@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (semver, e.g. 1.0.0)"
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  sanity-check:
+    name: Sanity Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure release from main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Releases must be created from the main branch."
+          exit 1
+
+  build:
+    name: Build
+    needs: sanity-check
+    uses: ./.github/workflows/build-binaries.yml
+    with:
+      version: ${{ inputs.version }}
+    secrets:
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+
+  release:
+    name: Release
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Update version in Cargo.toml
+        run: |
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+
+      - name: Download binaries into action directory
+        uses: actions/download-artifact@v8
+        with:
+          pattern: "*-binaries"
+          merge-multiple: true
+          path: action
+
+      - name: Make binaries executable
+        run: |
+          chmod +x action/rush-cache-server-x64
+          chmod +x action/rush-cache-server-arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker images
+        env:
+          DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+          REPO: ${{ github.repository }}
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ vars.DOCKER_USERNAME }}/rush-cache-server:${{ inputs.version }}
+            ${{ vars.DOCKER_USERNAME }}/rush-cache-server:latest
+            ghcr.io/${{ github.repository }}:${{ inputs.version }}
+            ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Commit release with binaries
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml
+          git add action/rush-cache-server-x64
+          git add action/rush-cache-server-arm64
+          git commit -m "Release v${VERSION}"
+
+      - name: Create and push tag
+        run: |
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin main --follow-tags
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | head -2 | tail -1)
+          if [ -z "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --oneline)
+          else
+            CHANGELOG=$(git log --oneline "${PREV_TAG}..v${VERSION}")
+          fi
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+          REPO: ${{ github.repository }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ inputs.version }}"
+          name: "v${{ inputs.version }}"
+          body: |
+            ## Changes
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Downloads
+            | Platform | Binary |
+            |----------|--------|
+            | Linux x86_64 | `rush-cache-server-x64` |
+            | Linux ARM64 | `rush-cache-server-arm64` |
+
+            ## Docker Images
+            - `docker pull ${{ vars.DOCKER_USERNAME }}/rush-cache-server:${{ inputs.version }}`
+            - `docker pull ghcr.io/${{ github.repository }}:${{ inputs.version }}`
+          files: |
+            action/rush-cache-server-x64
+            action/rush-cache-server-arm64

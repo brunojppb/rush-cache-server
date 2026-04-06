@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt -- --check
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    env:
+      S3_BUCKET: "test-bucket"
+      S3_REGION: "us-east-1"
+      S3_ACCESS_KEY: "testkey"
+      S3_SECRET_KEY: "testsecret"
+      S3_ENDPOINT: "http://localhost:9000"
+      S3_USE_PATH_STYLE: "true"
+      CACHE_TOKENS_READ_ONLY: "test_ro_token"
+      CACHE_TOKENS_READ_WRITE: "test_rw_token"
+      OTEL_SDK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run tests
+        run: cargo test --all-features
