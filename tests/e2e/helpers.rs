@@ -1,5 +1,6 @@
 use rush_cache_server::app_settings::{AppSettings, TokenStore};
 use rush_cache_server::startup::run;
+use secrecy::SecretString;
 use std::collections::HashSet;
 use std::net::TcpListener;
 use std::sync::LazyLock;
@@ -53,8 +54,8 @@ pub async fn spawn_app_with_config(config: TestAppConfig) -> TestApp {
         s3_bucket: "test-bucket".to_string(),
         s3_prefix: config.s3_prefix,
         s3_endpoint: Some(mock_s3.uri()),
-        s3_access_key: Some("test-access-key".to_string()),
-        s3_secret_key: Some("test-secret-key".to_string()),
+        s3_access_key: Some(SecretString::new("test-access-key".into())),
+        s3_secret_key: Some(SecretString::new("test-secret-key".into())),
         s3_use_path_style: true,
         log_level: "info".to_string(),
         logs_directory: None,

@@ -63,8 +63,8 @@ pub struct AppSettings {
     pub s3_bucket: String,
     pub s3_prefix: String,
     pub s3_endpoint: Option<String>,
-    pub s3_access_key: Option<String>,
-    pub s3_secret_key: Option<String>,
+    pub s3_access_key: Option<SecretString>,
+    pub s3_secret_key: Option<SecretString>,
     pub s3_use_path_style: bool,
     pub log_level: String,
     pub logs_directory: Option<String>,
@@ -95,8 +95,12 @@ impl AppSettings {
             s3_bucket,
             s3_prefix: env::var("S3_PREFIX").unwrap_or_else(|_| "rush-cache".to_string()),
             s3_endpoint: env::var("S3_ENDPOINT").ok(),
-            s3_access_key: env::var("S3_ACCESS_KEY").ok(),
-            s3_secret_key: env::var("S3_SECRET_KEY").ok(),
+            s3_access_key: env::var("S3_ACCESS_KEY")
+                .ok()
+                .map(|k| SecretString::new(k.into())),
+            s3_secret_key: env::var("S3_SECRET_KEY")
+                .ok()
+                .map(|k| SecretString::new(k.into())),
             s3_use_path_style: env::var("S3_USE_PATH_STYLE")
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()

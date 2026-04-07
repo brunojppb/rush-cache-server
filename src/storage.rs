@@ -4,6 +4,8 @@ use s3::creds::Credentials;
 use s3::request::ResponseDataStream;
 use tokio::io::AsyncRead;
 
+use secrecy::ExposeSecret;
+
 use crate::app_settings::AppSettings;
 
 #[derive(Debug)]
@@ -27,8 +29,14 @@ impl Storage {
 
         let credentials = match (&settings.s3_access_key, &settings.s3_secret_key) {
             (Some(access_key), Some(secret_key)) => {
-                Credentials::new(Some(access_key), Some(secret_key), None, None, None)
-                    .expect("Failed to create S3 credentials")
+                Credentials::new(
+                    Some(access_key.expose_secret()),
+                    Some(secret_key.expose_secret()),
+                    None,
+                    None,
+                    None,
+                )
+                .expect("Failed to create S3 credentials")
             }
             _ => Credentials::default().expect(
                 "Failed to resolve AWS credentials. Set S3_ACCESS_KEY and S3_SECRET_KEY or configure IAM role",
