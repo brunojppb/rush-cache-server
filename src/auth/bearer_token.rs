@@ -2,6 +2,7 @@ use actix_web::body::BoxBody;
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::middleware::Next;
 use actix_web::{HttpMessage, HttpResponse, web};
+use secrecy::{ExposeSecret, SecretString};
 use tracing::instrument;
 
 use crate::app_settings::{AppSettings, TokenPermission};
@@ -43,7 +44,7 @@ pub async fn validate_bearer_token(
     };
 
     let token = match token {
-        Some(t) => t,
+        Some(t) => SecretString::new(t.into()),
         None => {
             return Ok(req.into_response(
                 HttpResponse::Unauthorized()
@@ -53,12 +54,13 @@ pub async fn validate_bearer_token(
         }
     };
 
-    match settings.token_store.resolve(token) {
+    match settings.token_store.resolve(&token) {
         Some(permission) => {
-            let token_prefix = if token.len() > 8 {
-                format!("{}...", &token[..8])
+            let exposed = token.expose_secret();
+            let token_prefix = if exposed.len() > 8 {
+                format!("{}...", &exposed[..8])
             } else {
-                token.to_string()
+                exposed.to_string()
             };
             req.extensions_mut().insert(AuthenticatedToken {
                 permission,

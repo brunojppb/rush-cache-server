@@ -1,5 +1,8 @@
 use std::collections::HashSet;
 use std::env;
+use std::fmt;
+
+use secrecy::{ExposeSecret, SecretString};
 
 /// Permission level associated with a Bearer token.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -9,10 +12,25 @@ pub enum TokenPermission {
 }
 
 /// Resolved token store: maps tokens to their permission level.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TokenStore {
     read_only: HashSet<String>,
     read_write: HashSet<String>,
+}
+
+impl fmt::Debug for TokenStore {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TokenStore")
+            .field(
+                "read_only",
+                &format_args!("[{} tokens]", self.read_only.len()),
+            )
+            .field(
+                "read_write",
+                &format_args!("[{} tokens]", self.read_write.len()),
+            )
+            .finish()
+    }
 }
 
 impl TokenStore {
@@ -24,7 +42,8 @@ impl TokenStore {
     }
 
     /// Look up a token and return its permission level, or None if not found.
-    pub fn resolve(&self, token: &str) -> Option<TokenPermission> {
+    pub fn resolve(&self, token: &SecretString) -> Option<TokenPermission> {
+        let token = token.expose_secret();
         if self.read_write.contains(token) {
             Some(TokenPermission::ReadWrite)
         } else if self.read_only.contains(token) {
@@ -44,8 +63,8 @@ pub struct AppSettings {
     pub s3_bucket: String,
     pub s3_prefix: String,
     pub s3_endpoint: Option<String>,
-    pub s3_access_key: Option<String>,
-    pub s3_secret_key: Option<String>,
+    pub s3_access_key: Option<SecretString>,
+    pub s3_secret_key: Option<SecretString>,
     pub s3_use_path_style: bool,
     pub log_level: String,
     pub logs_directory: Option<String>,
@@ -76,8 +95,12 @@ impl AppSettings {
             s3_bucket,
             s3_prefix: env::var("S3_PREFIX").unwrap_or_else(|_| "rush-cache".to_string()),
             s3_endpoint: env::var("S3_ENDPOINT").ok(),
-            s3_access_key: env::var("S3_ACCESS_KEY").ok(),
-            s3_secret_key: env::var("S3_SECRET_KEY").ok(),
+            s3_access_key: env::var("S3_ACCESS_KEY")
+                .ok()
+                .map(|k| SecretString::new(k.into())),
+            s3_secret_key: env::var("S3_SECRET_KEY")
+                .ok()
+                .map(|k| SecretString::new(k.into())),
             s3_use_path_style: env::var("S3_USE_PATH_STYLE")
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()
@@ -130,7 +153,8 @@ mod tests {
             HashSet::from(["ro_token".to_string()]),
             HashSet::from(["rw_token".to_string()]),
         );
-        assert_eq!(store.resolve("rw_token"), Some(TokenPermission::ReadWrite));
+        let token = SecretString::new("rw_token".into());
+        assert_eq!(store.resolve(&token), Some(TokenPermission::ReadWrite));
     }
 
     #[test]
@@ -139,7 +163,8 @@ mod tests {
             HashSet::from(["ro_token".to_string()]),
             HashSet::from(["rw_token".to_string()]),
         );
-        assert_eq!(store.resolve("ro_token"), Some(TokenPermission::ReadOnly));
+        let token = SecretString::new("ro_token".into());
+        assert_eq!(store.resolve(&token), Some(TokenPermission::ReadOnly));
     }
 
     #[test]
@@ -148,7 +173,8 @@ mod tests {
             HashSet::from(["ro_token".to_string()]),
             HashSet::from(["rw_token".to_string()]),
         );
-        assert_eq!(store.resolve("unknown"), None);
+        let token = SecretString::new("unknown".into());
+        assert_eq!(store.resolve(&token), None);
     }
 
     #[test]
@@ -158,6 +184,19 @@ mod tests {
             HashSet::from(["shared".to_string()]),
             HashSet::from(["shared".to_string()]),
         );
-        assert_eq!(store.resolve("shared"), Some(TokenPermission::ReadWrite));
+        let token = SecretString::new("shared".into());
+        assert_eq!(store.resolve(&token), Some(TokenPermission::ReadWrite));
+    }
+
+    #[test]
+    fn test_token_store_debug_redacts_tokens() {
+        let store = TokenStore::new(
+            HashSet::from(["secret_ro".to_string()]),
+            HashSet::from(["secret_rw".to_string()]),
+        );
+        let debug_output = format!("{:?}", store);
+        assert!(!debug_output.contains("secret_ro"));
+        assert!(!debug_output.contains("secret_rw"));
+        assert!(debug_output.contains("[1 tokens]"));
     }
 }
