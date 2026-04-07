@@ -39,6 +39,7 @@ futures = "0.3"
 bytes = "1"
 http = "1"
 dotenv = "0.15"
+secrecy = "0.10"
 openssl = { version = "0.10", features = ["vendored"] }
 
 [dev-dependencies]
