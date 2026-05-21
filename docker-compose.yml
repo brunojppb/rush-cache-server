@@ -13,7 +13,7 @@ services:
       - s3_logs:/logs
 
   collector:
-    image: otel/opentelemetry-collector:0.119.0
+    image: otel/opentelemetry-collector:0.152.1
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
