@@ -2,11 +2,19 @@
 
 ## Used by folks at
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/buffer_white.png">
-  <source media="(prefers-color-scheme: light)" srcset="assets/buffer_black.png">
-  <img alt="Buffer" src="assets/buffer_black.png" width="200">
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/buffer_white.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/buffer_black.png">
+    <img alt="Buffer" src="assets/buffer_black.png" width="200">
+  </picture>
+</p>
+
+<br />
+
+<hr />
+
+<br />
 
 A high-performance HTTP build cache server for [Rush](https://rushjs.io/) monorepos. Acts as an authenticated proxy between Rush's [`@rushstack/rush-http-build-cache-plugin`](https://github.com/nicolo-ribaudo/rushstack/tree/main/rush-plugins/rush-http-build-cache-plugin) and a private S3 bucket, so your bucket never needs to be publicly accessible.
 
