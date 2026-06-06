@@ -1,6 +1,6 @@
 # Rush Cache Server
 
-## Used by folks at
+## Trusted by folks at
 
 <p align="center">
   <picture>
@@ -9,8 +9,6 @@
     <img alt="Buffer" src="assets/buffer_black.png" width="200">
   </picture>
 </p>
-
-<br />
 
 <hr />
 
