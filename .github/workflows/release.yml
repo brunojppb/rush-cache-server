@@ -154,7 +154,7 @@ jobs:
               -e S3_REGION=us-east-1 \
               -e CACHE_TOKENS_READ_ONLY=tok_ro_1 \
               -e CACHE_TOKENS_READ_WRITE=tok_rw_1 \
-              ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:latest
+              ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:${{ inputs.version }}
             ```
           files: |
             action/rush-cache-server-x64
