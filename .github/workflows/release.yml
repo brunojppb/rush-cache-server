@@ -144,6 +144,18 @@ jobs:
             ## Docker Images
             - `docker pull ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:${{ inputs.version }}`
             - `docker pull ghcr.io/${{ github.repository }}:${{ inputs.version }}`
+
+            ## Run with Docker
+            ```bash
+            docker run -d \
+              --name rush-cache-server \
+              -p 8080:8080 \
+              -e S3_BUCKET=my-rush-cache \
+              -e S3_REGION=us-east-1 \
+              -e CACHE_TOKENS_READ_ONLY=tok_ro_1 \
+              -e CACHE_TOKENS_READ_WRITE=tok_rw_1 \
+              ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:latest
+            ```
           files: |
             action/rush-cache-server-x64
             action/rush-cache-server-arm64
