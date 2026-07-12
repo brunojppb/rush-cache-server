@@ -79,6 +79,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Read Rust version from rust-toolchain.toml
+        id: rust
+        run: echo "version=$(grep -m1 '^channel' rust-toolchain.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push Docker images
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -88,6 +92,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            RUST_VERSION=${{ steps.rust.outputs.version }}
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:${{ env.VERSION }}
             ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:latest

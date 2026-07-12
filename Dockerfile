@@ -1,10 +1,17 @@
+# Rust toolchain version. This is the single fallback for standalone `docker build`.
+# CI always overrides it with --build-arg RUST_VERSION read from rust-toolchain.toml,
+# which is the single source of truth for the pinned version.
+ARG RUST_VERSION=1.97.0
+
 FROM alpine:3.24.1 AS ca-certificates
 RUN apk add --no-cache ca-certificates
 
 FROM --platform=$BUILDPLATFORM rust:alpine AS chef
+ARG RUST_VERSION
 WORKDIR /app
 ENV PKGCONFIG_SYSROOTDIR=/
 RUN apk add --no-cache musl-dev openssl-dev zig perl make && \
+  rustup toolchain install ${RUST_VERSION} && rustup default ${RUST_VERSION} && \
   cargo install --locked cargo-zigbuild cargo-chef && \
   rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
 

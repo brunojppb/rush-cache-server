@@ -4,7 +4,7 @@ version = "1.0.0"
 edition = "2024"
 authors = ["Bruno Paulino"]
 license = "MIT"
-rust-version = "1.94"
+rust-version = "1.97"
 
 [dependencies]
 actix-web = "4"
