@@ -1,4 +1,6 @@
-use crate::helpers::{READ_ONLY_TOKEN, READ_WRITE_TOKEN, spawn_app};
+use crate::helpers::{
+    READ_ONLY_TOKEN, READ_WRITE_TOKEN, TestAppConfig, spawn_app, spawn_app_with_config,
+};
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, ResponseTemplate};
 
@@ -22,6 +24,89 @@ async fn get_artifact_cache_miss_returns_404() {
         .expect("Failed to send request");
 
     assert_eq!(response.status(), 404);
+}
+
+#[tokio::test]
+async fn get_artifact_returns_500_when_s3_fails() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+
+    Mock::given(method("GET"))
+        .and(path("/test-bucket/rush-cache/broken-bucket-id"))
+        .respond_with(ResponseTemplate::new(500).set_body_string("<Error>InternalError</Error>"))
+        .mount(&app.mock_s3)
+        .await;
+
+    let response = client
+        .get(format!("{}/artifacts/broken-bucket-id", app.address))
+        .header("Authorization", format!("Bearer {}", READ_ONLY_TOKEN))
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    assert_eq!(response.status(), 500);
+}
+
+#[tokio::test]
+async fn get_artifact_returns_500_when_s3_denies_access() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+
+    Mock::given(method("GET"))
+        .and(path("/test-bucket/rush-cache/forbidden-id"))
+        .respond_with(ResponseTemplate::new(403).set_body_string("<Error>AccessDenied</Error>"))
+        .mount(&app.mock_s3)
+        .await;
+
+    let response = client
+        .get(format!("{}/artifacts/forbidden-id", app.address))
+        .header("Authorization", format!("Bearer {}", READ_ONLY_TOKEN))
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    assert_eq!(response.status(), 500);
+}
+
+/// A misconfigured endpoint must not read as a cache miss, or every build
+/// silently rebuilds with no sign of the real problem.
+#[tokio::test]
+async fn get_artifact_returns_500_when_s3_is_unreachable() {
+    let app = spawn_app_with_config(TestAppConfig {
+        s3_endpoint: Some("http://127.0.0.1:1".to_string()),
+        ..Default::default()
+    })
+    .await;
+    let client = reqwest::Client::new();
+
+    let response = client
+        .get(format!("{}/artifacts/unreachable-id", app.address))
+        .header("Authorization", format!("Bearer {}", READ_ONLY_TOKEN))
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    assert_eq!(response.status(), 500);
+}
+
+#[tokio::test]
+async fn put_artifact_returns_500_when_s3_is_unreachable() {
+    let app = spawn_app_with_config(TestAppConfig {
+        s3_endpoint: Some("http://127.0.0.1:1".to_string()),
+        ..Default::default()
+    })
+    .await;
+    let client = reqwest::Client::new();
+
+    let response = client
+        .put(format!("{}/artifacts/unreachable-id", app.address))
+        .header("Authorization", format!("Bearer {}", READ_WRITE_TOKEN))
+        .body(b"build output".to_vec())
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    assert_eq!(response.status(), 500);
 }
 
 #[tokio::test]
