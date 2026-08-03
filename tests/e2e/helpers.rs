@@ -24,12 +24,16 @@ pub struct TestApp {
 
 pub struct TestAppConfig {
     pub s3_prefix: String,
+    /// Replaces the mock S3 endpoint. Point it at a dead address to exercise
+    /// the path where the bucket cannot be reached.
+    pub s3_endpoint: Option<String>,
 }
 
 impl Default for TestAppConfig {
     fn default() -> Self {
         Self {
             s3_prefix: "rush-cache".to_string(),
+            s3_endpoint: None,
         }
     }
 }
@@ -53,7 +57,7 @@ pub async fn spawn_app_with_config(config: TestAppConfig) -> TestApp {
         s3_region: "us-east-1".to_string(),
         s3_bucket: "test-bucket".to_string(),
         s3_prefix: config.s3_prefix,
-        s3_endpoint: Some(mock_s3.uri()),
+        s3_endpoint: Some(config.s3_endpoint.unwrap_or_else(|| mock_s3.uri())),
         s3_access_key: Some(SecretString::new("test-access-key".into())),
         s3_secret_key: Some(SecretString::new("test-secret-key".into())),
         s3_use_path_style: true,

@@ -5,7 +5,7 @@ use tracing::instrument;
 
 use crate::app_settings::{AppSettings, TokenPermission};
 use crate::auth::bearer_token::AuthenticatedToken;
-use crate::storage::Storage;
+use crate::storage::{Storage, StorageError};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ArtifactPath {
@@ -13,7 +13,7 @@ pub struct ArtifactPath {
 }
 
 /// GET /artifacts/{cache_id} — stream a cached build artifact from S3.
-#[instrument(name = "get_artifact", skip(storage), fields(cache_id = %path.cache_id))]
+#[instrument(name = "get_artifact", skip(storage, _settings), fields(cache_id = %path.cache_id))]
 pub async fn get_artifact(
     path: web::Path<ArtifactPath>,
     storage: web::Data<Storage>,
@@ -21,8 +21,16 @@ pub async fn get_artifact(
 ) -> HttpResponse {
     let cache_id = &path.cache_id;
 
-    let Some(response) = storage.get_file(cache_id).await else {
-        return HttpResponse::NotFound().json(serde_json::json!({"error": "Cache miss"}));
+    let response = match storage.get_file(cache_id).await {
+        Ok(response) => response,
+        Err(StorageError::NotFound) => {
+            return HttpResponse::NotFound().json(serde_json::json!({"error": "Cache miss"}));
+        }
+        Err(error) => {
+            tracing::error!(error = %error, cache_id = %cache_id, "Failed to read artifact from S3");
+            return HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": "Failed to read artifact"}));
+        }
     };
 
     // Stream S3 response bytes directly to the HTTP client
@@ -42,7 +50,7 @@ pub async fn get_artifact(
 }
 
 /// PUT /artifacts/{cache_id} — stream a build artifact to S3.
-#[instrument(name = "put_artifact", skip(storage, body), fields(cache_id = %path.cache_id))]
+#[instrument(name = "put_artifact", skip(storage, body, _settings), fields(cache_id = %path.cache_id))]
 pub async fn put_artifact(
     path: web::Path<ArtifactPath>,
     req: HttpRequest,
