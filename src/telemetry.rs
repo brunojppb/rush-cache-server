@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::{env, time::Duration};
 
 use opentelemetry::metrics::ObservableGauge;
@@ -21,6 +21,24 @@ use tracing_subscriber::{
 
 const APP_NAME: &str = "rush-cache-server";
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// The service name reported to OpenTelemetry.
+/// `OTEL_SERVICE_NAME` takes precedence over the crate name when it holds a
+/// non-blank value. Read once per process.
+fn service_name() -> &'static str {
+    static SERVICE_NAME_VALUE: OnceLock<String> = OnceLock::new();
+    SERVICE_NAME_VALUE
+        .get_or_init(|| resolve_service_name(env::var("OTEL_SERVICE_NAME").ok(), APP_NAME))
+}
+
+/// Pick the service name from an environment value, falling back to the given
+/// default. Blank values count as unset, which is how the OTel spec treats them.
+fn resolve_service_name(env_value: Option<String>, default: &str) -> String {
+    env_value
+        .map(|name| name.trim().to_owned())
+        .filter(|name| !name.is_empty())
+        .unwrap_or_else(|| default.to_owned())
+}
 
 /// Check if the OpenTelemetry SDK is disabled via the OTEL_SDK_DISABLED environment variable.
 fn is_otel_disabled() -> bool {
@@ -108,7 +126,7 @@ where
 /// Generate a resource with all the common markers for our traces and metrics.
 fn get_resource() -> Resource {
     Resource::builder()
-        .with_service_name(APP_NAME.to_owned())
+        .with_service_name(service_name())
         .with_attribute(KeyValue::new(SERVICE_VERSION, APP_VERSION.to_owned()))
         .build()
 }
@@ -140,7 +158,7 @@ pub fn init_system_metrics() -> Option<SystemMetrics> {
 
     let generate_tags = || {
         [
-            KeyValue::new(SERVICE_NAME, APP_NAME.to_owned()),
+            KeyValue::new(SERVICE_NAME, service_name()),
             KeyValue::new(SERVICE_VERSION, APP_VERSION.to_owned()),
         ]
     };
@@ -213,4 +231,46 @@ pub fn init_system_metrics() -> Option<SystemMetrics> {
         _memory_gauge: memory_gauge,
         _virtual_memory_gauge: virtual_memory_gauge,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_service_name;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn uses_env_value_when_set() {
+        assert_eq!(
+            resolve_service_name(Some("my-cache".to_owned()), "rush-cache-server"),
+            "my-cache"
+        );
+    }
+
+    #[test]
+    fn trims_surrounding_whitespace() {
+        assert_eq!(
+            resolve_service_name(Some("  my-cache  ".to_owned()), "rush-cache-server"),
+            "my-cache"
+        );
+    }
+
+    #[test]
+    fn falls_back_to_default_when_unset() {
+        assert_eq!(
+            resolve_service_name(None, "rush-cache-server"),
+            "rush-cache-server"
+        );
+    }
+
+    #[test]
+    fn falls_back_to_default_when_blank() {
+        assert_eq!(
+            resolve_service_name(Some("".to_owned()), "rush-cache-server"),
+            "rush-cache-server"
+        );
+        assert_eq!(
+            resolve_service_name(Some("   ".to_owned()), "rush-cache-server"),
+            "rush-cache-server"
+        );
+    }
 }
