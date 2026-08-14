@@ -6,8 +6,8 @@ use tracing_actix_web::TracingLogger;
 
 use crate::app_settings::AppSettings;
 use crate::auth::bearer_token::validate_bearer_token;
-use crate::routes::artifacts::{get_artifact, put_artifact};
 use crate::http_span::RushRootSpanBuilder;
+use crate::routes::artifacts::{get_artifact, put_artifact};
 use crate::routes::health_check::{HEALTH_CHECK_PATH, health_check};
 use crate::storage::Storage;
 
