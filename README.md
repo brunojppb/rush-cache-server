@@ -209,6 +209,10 @@ The server ships with full OTLP support for traces and metrics, compatible with 
 
 System metrics (CPU and memory) are automatically registered as OpenTelemetry gauges when OTel is enabled.
 
+### Request spans
+
+Every request opens an `HTTP request` root span that carries the method, the route, and the status code. Handler and storage spans nest under it. Requests to `/health` get no root span: orchestrators probe that route every few seconds, and those spans would bury real traffic in your tracing backend.
+
 To try the observability stack locally:
 
 ```bash
