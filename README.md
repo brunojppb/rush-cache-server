@@ -206,8 +206,21 @@ The server ships with full OTLP support for traces and metrics, compatible with 
 | ----------------------------- | ----------------------- | -------------------------------------- |
 | `OTEL_SDK_DISABLED`           | `false`                 | Set to `true` to disable OTel entirely |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTLP gRPC endpoint                     |
+| `OTEL_SERVICE_NAME`           | `rush-cache-server`     | Service name on traces and metrics     |
 
 System metrics (CPU and memory) are automatically registered as OpenTelemetry gauges when OTel is enabled.
+
+### Service name
+
+Traces and metrics carry the service name `rush-cache-server`. You see this identifier in your observability platform when you filter or query telemetry. Set [`OTEL_SERVICE_NAME`](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#general-sdk-configuration) to report a different name, for example to tell several deployments apart:
+
+```shell
+export OTEL_SERVICE_NAME="rush-cache-server-staging"
+```
+
+### Request spans
+
+Every request opens an `HTTP request` root span that carries the method, the route, and the status code. Handler and storage spans nest under it. Requests to `/health` get no root span: orchestrators probe that route every few seconds, and those spans would bury real traffic in your tracing backend.
 
 To try the observability stack locally:
 

@@ -6,8 +6,9 @@ use tracing_actix_web::TracingLogger;
 
 use crate::app_settings::AppSettings;
 use crate::auth::bearer_token::validate_bearer_token;
+use crate::http_span::RushRootSpanBuilder;
 use crate::routes::artifacts::{get_artifact, put_artifact};
-use crate::routes::health_check::health_check;
+use crate::routes::health_check::{HEALTH_CHECK_PATH, health_check};
 use crate::storage::Storage;
 
 /// Build and return the Actix-web server (without starting it).
@@ -18,9 +19,9 @@ pub fn run(listener: TcpListener, settings: AppSettings) -> Result<Server, std::
 
     let server = HttpServer::new(move || {
         App::new()
-            .wrap(TracingLogger::default())
+            .wrap(TracingLogger::<RushRootSpanBuilder>::new())
             // Health check — no auth
-            .route("/health", web::get().to(health_check))
+            .route(HEALTH_CHECK_PATH, web::get().to(health_check))
             // Artifact routes — behind auth middleware
             .service(
                 web::scope("/artifacts")

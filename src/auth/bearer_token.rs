@@ -3,7 +3,6 @@ use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::middleware::Next;
 use actix_web::{HttpMessage, HttpResponse, web};
 use secrecy::{ExposeSecret, SecretString};
-use tracing::instrument;
 
 use crate::app_settings::{AppSettings, TokenPermission};
 
@@ -17,7 +16,6 @@ pub struct AuthenticatedToken {
 
 /// Actix-web middleware that validates Bearer tokens from the Authorization header.
 /// Attaches an `AuthenticatedToken` to the request extensions on success.
-#[instrument(name = "validate_bearer_token", skip_all)]
 pub async fn validate_bearer_token(
     req: ServiceRequest,
     next: Next<BoxBody>,
