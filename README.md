@@ -258,6 +258,27 @@ cargo test
 
 Tests use [Wiremock](https://crates.io/crates/wiremock) to mock S3 responses -- no running S3 instance required.
 
+### Release builds and caches
+
+Linux AMD64 and ARM64 executables compile once on separate native GitHub runners.
+BuildKit exports each executable directly; releases reuse those artifacts for the
+GitHub Action, downloads, and images published to Docker Hub and GHCR.
+`Dockerfile.release` only packages the binaries and CA certificates. Standalone
+source builds remain available with `docker build .`.
+
+Cargo Chef dependency layers persist in the public GHCR package as
+`ghcr.io/brunojppb/rush-cache-server:buildcache-amd64` and `buildcache-arm64`.
+Keep both tags excluded from package cleanup policies. Trusted main-branch builds
+and releases update these caches with `GITHUB_TOKEN`; pull requests restore them
+anonymously without registry credentials or cache writes. The first main-branch
+build populates the caches; missing caches result in a normal cold build.
+
+Each native build checks CPU architecture and static linkage, then verifies that
+the runtime image contains the exported executable and CA certificates and serves
+`/health`. Release versions are staged in both `Cargo.toml` and `Cargo.lock`
+without updating dependencies. Run the version-staging checks with
+`python3 .github/scripts/test-set-version.py`.
+
 ### Linting
 
 ```bash

@@ -21,6 +21,11 @@ jobs:
     name: Sanity Check
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
+      - name: Validate release version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 .github/scripts/set-version.py "$RELEASE_VERSION"
       - name: Ensure release from main
         if: github.ref != 'refs/heads/main'
         run: |
@@ -30,11 +35,12 @@ jobs:
   build:
     name: Build
     needs: sanity-check
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/build-binaries.yml
     with:
       version: ${{ inputs.version }}
-    secrets:
-      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
 
   release:
     name: Release
@@ -47,9 +53,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Update version in Cargo.toml
-        run: |
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+      - name: Stage release version
+        run: python3 .github/scripts/set-version.py "$VERSION"
 
       - name: Download binaries into action directory
         uses: actions/download-artifact@v8
@@ -79,9 +84,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Read Rust version from rust-toolchain.toml
-        id: rust
-        run: echo "version=$(grep -m1 '^channel' rust-toolchain.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+      - name: Stage prebuilt Linux executables
+        run: |
+          mkdir -p image/linux/amd64 image/linux/arm64
+          cp action/rush-cache-server-x64 image/linux/amd64/rush-cache-server
+          cp action/rush-cache-server-arm64 image/linux/arm64/rush-cache-server
 
       - name: Build and push Docker images
         env:
@@ -89,24 +96,21 @@ jobs:
           REPO: ${{ github.repository }}
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: image
+          file: Dockerfile.release
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            RUST_VERSION=${{ steps.rust.outputs.version }}
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:${{ env.VERSION }}
             ${{ secrets.DOCKER_USERNAME }}/rush-cache-server:latest
             ghcr.io/${{ github.repository }}:${{ env.VERSION }}
             ghcr.io/${{ github.repository }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Commit release with binaries
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Cargo.toml
+          git add Cargo.toml Cargo.lock
           git add action/rush-cache-server-x64
           git add action/rush-cache-server-arm64
           git commit -m "Release v${VERSION}"
