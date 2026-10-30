@@ -58,10 +58,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Start Rush Cache Server
-        uses: brunojppb/rush-cache-server@v1
+        uses: brunojppb/rush-cache-server@bddb1a0b55487df7253d0961bd32b2801c50614f # v1.0.8
         env:
           S3_BUCKET: ${{ vars.CACHE_S3_BUCKET }}
           S3_REGION: us-east-1
