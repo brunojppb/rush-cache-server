@@ -13,16 +13,16 @@ jobs:
     name: Packaging Contract
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: python3 .github/scripts/test-set-version.py
 
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Toolchain (channel + rustfmt/clippy) is pinned via rust-toolchain.toml
-      - uses: actions-rust-lang/setup-rust-toolchain@v2
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
       - name: Check formatting
         run: cargo fmt -- --check
       - name: Run clippy
@@ -42,8 +42,8 @@ jobs:
       CACHE_TOKENS_READ_WRITE: "test_rw_token"
       OTEL_SDK_DISABLED: "true"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Toolchain is pinned via rust-toolchain.toml
-      - uses: actions-rust-lang/setup-rust-toolchain@v2
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
       - name: Run tests
         run: cargo test --all-features
