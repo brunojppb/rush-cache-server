@@ -1,65 +1,91 @@
-name: Build Binaries
+name: Build binaries
 
 on:
   workflow_call:
     inputs:
       version:
-        required: false
+        description: "Release package version; empty keeps the checked-out version."
         type: string
-        default: "latest"
-      cache-ref:
         required: false
-        type: string
-        default: "cache"
-    secrets:
-      DOCKER_TOKEN:
-        required: false
+        default: ""
 
+# Token permissions are supplied by the caller: PRs read packages; main/releases write.
 jobs:
-  linux:
-    name: Build Linux Binaries
-    runs-on: ubuntu-latest
+  build-linux:
+    name: Build Linux (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            binary: rush-cache-server-x64
+            machine: Advanced Micro Devices X86-64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            binary: rush-cache-server-arm64
+            machine: AArch64
+    runs-on: ${{ matrix.runner }}
+    concurrency:
+      group: linux-buildcache-${{ matrix.arch }}-${{ github.ref }}
+      cancel-in-progress: false
+    env:
+      # Keep caches in the existing public package so fork PRs can restore anonymously.
+      CACHE_REF: ghcr.io/brunojppb/rush-cache-server:buildcache-${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v7
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Update version in Cargo.toml
-        if: inputs.version != 'latest'
+      - name: Stage release version
+        if: inputs.version != ''
         env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 .github/scripts/set-version.py "$RELEASE_VERSION"
 
-      - name: Read Rust version from rust-toolchain.toml
+      - uses: docker/setup-buildx-action@v4
+      - name: Authenticate trusted cache writer
+        id: registry
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Read pinned Rust version
         id: rust
-        run: echo "version=$(grep -m1 '^channel' rust-toolchain.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(python3 -c 'import tomllib; print(tomllib.load(open("rust-toolchain.toml", "rb"))["toolchain"]["channel"])')" >> "$GITHUB_OUTPUT"
 
-      - name: Build Linux binaries (AMD64 + ARM64)
+      - name: Compile and export executable
         uses: docker/build-push-action@v7
         with:
           context: .
-          target: builder
-          load: true
-          tags: rush-cache-builder:latest
-          build-args: |
-            RUST_VERSION=${{ steps.rust.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          target: artifact
+          platforms: linux/${{ matrix.arch }}
+          build-args: RUST_VERSION=${{ steps.rust.outputs.version }}
+          outputs: type=local,dest=out
+          cache-from: type=registry,ref=${{ env.CACHE_REF }}
+          cache-to: ${{ steps.registry.outcome == 'success' && format('type=registry,ref={0},mode=max', env.CACHE_REF) || '' }}
 
-      - name: Extract binaries
+      - name: Verify static binary and package runtime
+        env:
+          ARCH: ${{ matrix.arch }}
+          MACHINE: ${{ matrix.machine }}
         run: |
-          container_id=$(docker create rush-cache-builder:latest)
-          docker cp "$container_id:/app/linux/amd64" ./rush-cache-server-x64
-          docker cp "$container_id:/app/linux/arm64" ./rush-cache-server-arm64
-          docker rm "$container_id"
-          chmod +x ./rush-cache-server-x64 ./rush-cache-server-arm64
+          chmod +x out/rush-cache-server
+          readelf -h out/rush-cache-server | grep -F "$MACHINE"
+          if readelf -l out/rush-cache-server | grep -q INTERP; then
+            echo 'Expected a statically linked musl executable'
+            exit 1
+          fi
+          mkdir -p "image/linux/$ARCH"
+          cp out/rush-cache-server "image/linux/$ARCH/rush-cache-server"
+          docker build --platform "linux/$ARCH" -f Dockerfile.release -t rush-cache-server-smoke image
+          .github/scripts/smoke-image.sh rush-cache-server-smoke out/rush-cache-server
 
-      - name: Upload binaries
-        uses: actions/upload-artifact@v7
+      - name: Name action binary
+        env:
+          BINARY: ${{ matrix.binary }}
+        run: mv out/rush-cache-server "out/$BINARY"
+      - uses: actions/upload-artifact@v7
         with:
-          name: linux-binaries
-          path: |
-            rush-cache-server-x64
-            rush-cache-server-arm64
+          name: linux-${{ matrix.arch }}-binaries
+          path: out/${{ matrix.binary }}
+          if-no-files-found: error

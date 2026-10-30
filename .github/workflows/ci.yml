@@ -9,6 +9,13 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  packaging-contract:
+    name: Packaging Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 .github/scripts/test-set-version.py
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
