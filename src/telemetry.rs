@@ -146,14 +146,20 @@ pub struct SystemMetrics {
 }
 
 /// Initialize system metrics (CPU, RAM) using OpenTelemetry gauges.
-/// Returns None if OTel is disabled.
+/// Returns None if OTel is disabled or process information cannot be read.
 pub fn init_system_metrics() -> Option<SystemMetrics> {
     if is_otel_disabled() {
         return None;
     }
 
+    let system = match System::new_all() {
+        Ok(system) => Arc::new(Mutex::new(system)),
+        Err(error) => {
+            tracing::warn!(%error, "System metrics disabled: cannot read process information");
+            return None;
+        }
+    };
     let meter = opentelemetry::global::meter(APP_NAME);
-    let system = Arc::new(Mutex::new(System::new_all()));
     let current_pid = Pid::from_u32(std::process::id());
 
     let generate_tags = || {
