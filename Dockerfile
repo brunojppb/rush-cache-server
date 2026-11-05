@@ -23,7 +23,7 @@ RUN cargo build --release --locked --bin rush-cache-server
 FROM scratch AS artifact
 COPY --from=builder /app/target/release/rush-cache-server /rush-cache-server
 
-FROM alpine:3.24.3 AS certificates
+FROM alpine:3.24.4 AS certificates
 RUN apk add --no-cache ca-certificates
 
 # Standalone source build remains available with `docker build .`.
