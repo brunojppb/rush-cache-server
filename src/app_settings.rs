@@ -194,7 +194,7 @@ mod tests {
             HashSet::from(["secret_ro".to_string()]),
             HashSet::from(["secret_rw".to_string()]),
         );
-        let debug_output = format!("{:?}", store);
+        let debug_output = format!("{store:?}");
         assert!(!debug_output.contains("secret_ro"));
         assert!(!debug_output.contains("secret_rw"));
         assert!(debug_output.contains("[1 tokens]"));

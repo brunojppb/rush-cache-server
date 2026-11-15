@@ -18,7 +18,7 @@ async fn get_artifact_cache_miss_returns_404() {
 
     let response = client
         .get(format!("{}/artifacts/nonexistent-id", app.address))
-        .header("Authorization", format!("Bearer {}", READ_ONLY_TOKEN))
+        .header("Authorization", format!("Bearer {READ_ONLY_TOKEN}"))
         .send()
         .await
         .expect("Failed to send request");
@@ -39,7 +39,7 @@ async fn get_artifact_returns_500_when_s3_fails() {
 
     let response = client
         .get(format!("{}/artifacts/broken-bucket-id", app.address))
-        .header("Authorization", format!("Bearer {}", READ_ONLY_TOKEN))
+        .header("Authorization", format!("Bearer {READ_ONLY_TOKEN}"))
         .send()
         .await
         .expect("Failed to send request");
@@ -60,7 +60,7 @@ async fn get_artifact_returns_500_when_s3_denies_access() {
 
     let response = client
         .get(format!("{}/artifacts/forbidden-id", app.address))
-        .header("Authorization", format!("Bearer {}", READ_ONLY_TOKEN))
+        .header("Authorization", format!("Bearer {READ_ONLY_TOKEN}"))
         .send()
         .await
         .expect("Failed to send request");
@@ -81,7 +81,7 @@ async fn get_artifact_returns_500_when_s3_is_unreachable() {
 
     let response = client
         .get(format!("{}/artifacts/unreachable-id", app.address))
-        .header("Authorization", format!("Bearer {}", READ_ONLY_TOKEN))
+        .header("Authorization", format!("Bearer {READ_ONLY_TOKEN}"))
         .send()
         .await
         .expect("Failed to send request");
@@ -100,7 +100,7 @@ async fn put_artifact_returns_500_when_s3_is_unreachable() {
 
     let response = client
         .put(format!("{}/artifacts/unreachable-id", app.address))
-        .header("Authorization", format!("Bearer {}", READ_WRITE_TOKEN))
+        .header("Authorization", format!("Bearer {READ_WRITE_TOKEN}"))
         .body(b"build output".to_vec())
         .send()
         .await
@@ -125,7 +125,7 @@ async fn get_artifact_cache_hit_returns_200_with_body() {
 
     let response = client
         .get(format!("{}/artifacts/hit-cache-id", app.address))
-        .header("Authorization", format!("Bearer {}", READ_ONLY_TOKEN))
+        .header("Authorization", format!("Bearer {READ_ONLY_TOKEN}"))
         .send()
         .await
         .expect("Failed to send request");
@@ -152,7 +152,7 @@ async fn put_artifact_stores_to_s3_and_returns_200() {
 
     let response = client
         .put(format!("{}/artifacts/new-cache-id", app.address))
-        .header("Authorization", format!("Bearer {}", READ_WRITE_TOKEN))
+        .header("Authorization", format!("Bearer {READ_WRITE_TOKEN}"))
         .body(artifact_data.to_vec())
         .send()
         .await
@@ -173,14 +173,14 @@ async fn put_then_get_roundtrip() {
 
     // Mock S3 PUT
     Mock::given(method("PUT"))
-        .and(path(format!("/test-bucket/rush-cache/{}", cache_id)))
+        .and(path(format!("/test-bucket/rush-cache/{cache_id}")))
         .respond_with(ResponseTemplate::new(200))
         .mount(&app.mock_s3)
         .await;
 
     // Mock S3 GET (returns the same data)
     Mock::given(method("GET"))
-        .and(path(format!("/test-bucket/rush-cache/{}", cache_id)))
+        .and(path(format!("/test-bucket/rush-cache/{cache_id}")))
         .respond_with(ResponseTemplate::new(200).set_body_bytes(artifact_data.to_vec()))
         .mount(&app.mock_s3)
         .await;
@@ -188,7 +188,7 @@ async fn put_then_get_roundtrip() {
     // PUT
     let put_response = client
         .put(format!("{}/artifacts/{}", app.address, cache_id))
-        .header("Authorization", format!("Bearer {}", READ_WRITE_TOKEN))
+        .header("Authorization", format!("Bearer {READ_WRITE_TOKEN}"))
         .body(artifact_data.to_vec())
         .send()
         .await
@@ -198,7 +198,7 @@ async fn put_then_get_roundtrip() {
     // GET
     let get_response = client
         .get(format!("{}/artifacts/{}", app.address, cache_id))
-        .header("Authorization", format!("Bearer {}", READ_WRITE_TOKEN))
+        .header("Authorization", format!("Bearer {READ_WRITE_TOKEN}"))
         .send()
         .await
         .expect("Failed to GET");
