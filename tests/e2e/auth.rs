@@ -58,7 +58,7 @@ async fn read_only_token_on_put_returns_403() {
 
     let response = client
         .put(format!("{}/artifacts/test-cache-id", app.address))
-        .header("Authorization", format!("Bearer {}", READ_ONLY_TOKEN))
+        .header("Authorization", format!("Bearer {READ_ONLY_TOKEN}"))
         .body(b"some data".to_vec())
         .send()
         .await
@@ -78,7 +78,7 @@ async fn read_write_token_on_get_is_allowed() {
     // This will hit the mock S3 and likely 404, but the point is it doesn't 401/403
     let response = client
         .get(format!("{}/artifacts/test-cache-id", app.address))
-        .header("Authorization", format!("Bearer {}", READ_WRITE_TOKEN))
+        .header("Authorization", format!("Bearer {READ_WRITE_TOKEN}"))
         .send()
         .await
         .expect("Failed to send request");
@@ -95,7 +95,7 @@ async fn read_only_token_on_get_is_allowed() {
 
     let response = client
         .get(format!("{}/artifacts/test-cache-id", app.address))
-        .header("Authorization", format!("Bearer {}", READ_ONLY_TOKEN))
+        .header("Authorization", format!("Bearer {READ_ONLY_TOKEN}"))
         .send()
         .await
         .expect("Failed to send request");

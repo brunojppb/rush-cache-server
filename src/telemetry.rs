@@ -42,9 +42,7 @@ fn resolve_service_name(env_value: Option<String>, default: &str) -> String {
 
 /// Check if the OpenTelemetry SDK is disabled via the OTEL_SDK_DISABLED environment variable.
 fn is_otel_disabled() -> bool {
-    env::var("OTEL_SDK_DISABLED")
-        .map(|v| v.eq_ignore_ascii_case("true"))
-        .unwrap_or(false)
+    env::var("OTEL_SDK_DISABLED").is_ok_and(|v| v.eq_ignore_ascii_case("true"))
 }
 
 pub fn get_telemetry_subscriber<Sink>(
@@ -62,7 +60,7 @@ where
     let maybe_file_layer = match env::var("LOGS_DIRECTORY") {
         Ok(logs_dir) => {
             let file_appender =
-                tracing_appender::rolling::never(logs_dir, format!("{}.log", APP_NAME));
+                tracing_appender::rolling::never(logs_dir, format!("{APP_NAME}.log"));
             let file_layer = fmt::layer().with_writer(file_appender);
             Some(file_layer)
         }
@@ -185,7 +183,7 @@ pub fn init_system_metrics() -> Option<SystemMetrics> {
 
             if let Some(process) = sys.process(current_pid) {
                 let cpu_usage = process.cpu_usage();
-                observer.observe(cpu_usage as f64, &generate_tags());
+                observer.observe(f64::from(cpu_usage), &generate_tags());
             }
         })
         .build();
@@ -271,7 +269,7 @@ mod tests {
     #[test]
     fn falls_back_to_default_when_blank() {
         assert_eq!(
-            resolve_service_name(Some("".to_owned()), "rush-cache-server"),
+            resolve_service_name(Some(String::new()), "rush-cache-server"),
             "rush-cache-server"
         );
         assert_eq!(

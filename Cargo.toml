@@ -52,3 +52,15 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "test-util"] }
 strip = true
 opt-level = "z"
 lto = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+uninlined_format_args = "warn"
+manual_string_new = "warn"
+map_unwrap_or = "warn"
+cast_lossless = "warn"
+
+[lints.cargo]
+unused_dependencies = "deny"
